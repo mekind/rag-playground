@@ -1,0 +1,32 @@
+---
+alwaysApply: true
+---
+
+Documentation-first is mandatory.
+
+Before writing any code, you must create a documentation file for each source file.
+
+For every source code file:
+- A corresponding documentation file must exist.
+- The documentation must be written BEFORE the code.
+- The document must describe at least:
+  1) the file’s purpose and responsibility
+  2) the main components (functions, classes, or modules)
+- Additional details (APIs, dependencies, assumptions) may be added if needed.
+
+Documentation is the primary source of truth.
+
+When asked to analyze or understand a codebase:
+- Do NOT read or analyze the source code directly.
+- Read and rely ONLY on the documentation files.
+- If documentation is missing, incomplete, or unclear, stop and request clarification
+  instead of inferring behavior from code.
+
+Documentation structure rules:
+- All documentation must be stored under a `docs/` directory.
+- Documentation files must mirror the source structure.
+  Example:
+    app/retrieval.py → docs/app/retrieval.md
+
+Code must not be written or modified without an existing and up-to-date document.
+

@@ -1,0 +1,5 @@
+venv/
+
+# Data and credentials
+.data/
+.env
