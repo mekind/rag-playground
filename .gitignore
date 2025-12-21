@@ -3,3 +3,11 @@ venv/
 # Data and credentials
 .data/
 .env
+
+chroma_db/
+data/raw/
+data/processed/
+
+__pycache__/
+
+*.egg-info/

@@ -31,7 +31,7 @@ Converts raw data into standardized Q-A pairs.
 
 **Returns:**
 - `list[dict]`: List of processed FAQ entries, each containing:
-  - `id` (int): Unique identifier
+  - `id` (str): 고유 식별자 (JSON의 `Question_ID` 또는 인덱스)
   - `question` (str): Question text
   - `answer` (str): Answer text
   - `text` (str): Combined "Q: {question}\nA: {answer}" format for embedding
@@ -42,7 +42,10 @@ Converts raw data into standardized Q-A pairs.
   - Falls back to using first two columns if not found
 - Handles JSON format:
   - Supports both list and single dict formats
-  - Extracts question/answer from various key name variations
+  - Extracts question/answer from various key name variations:
+    - Question keys: `Questions`, `Question`, `question`, `q`
+    - Answer keys: `Answers`, `Answer`, `answer`, `a`, `response`
+  - Uses `Question_ID` if available for ID field
 - Filters out empty or invalid entries
 - Creates combined text field for embedding
 
@@ -84,4 +87,30 @@ Main preprocessing pipeline that orchestrates the entire process.
 
 - Raw data files exist in `data/raw/` directory
 - Data contains question-answer pairs in some recognizable format
-- Column names or keys follow common naming patterns (question, answer, q, a, etc.)
+- Column names or keys follow common naming patterns:
+  - Question: `Questions`, `Question`, `question`, `q`
+  - Answer: `Answers`, `Answer`, `answer`, `a`, `response`
+  - ID (optional): `Question_ID`
+
+## Supported Data Formats
+
+### Mental Health FAQ Dataset (Kaggle)
+
+JSON 형식:
+```json
+{
+  "Question_ID": "1590140",
+  "Questions": "What does it mean to have a mental illness?",
+  "Answers": "Mental illnesses are health conditions..."
+}
+```
+
+위 형식에서 자동으로 다음과 같이 변환됩니다:
+```json
+{
+  "id": "1590140",
+  "question": "What does it mean to have a mental illness?",
+  "answer": "Mental illnesses are health conditions...",
+  "text": "Q: What does it mean to have a mental illness?\nA: Mental illnesses are health conditions..."
+}
+```
