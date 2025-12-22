@@ -23,6 +23,7 @@ dependencies = [
 dev = [
     "black",
     "mypy",
+    "pytest",
 ]
 
 [tool.setuptools]
@@ -30,5 +31,5 @@ py-modules = ["config"]
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["app*", "data*", "ingest*", "retrieval*"]
+include = ["app*", "data*", "ingest*", "retrieval*", "evaluation*"]
 

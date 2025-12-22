@@ -1,0 +1,4 @@
+{"qid":"q001","query":"불안이 심할 때 어떻게 해야 하나요?","gold_ids":["12","58"],"tags":["anxiety"]}
+{"qid":"q002","query":"우울감이 오래 지속되면 어떻게 대처해야 하나요?","gold_ids":["7"],"tags":["depression"]}
+{"qid":"q003","query":"잠을 잘 못 자는 불면증이 있을 때 도움이 되는 방법이 있나요?","gold_ids":["31"],"tags":["sleep","insomnia"]}
+
