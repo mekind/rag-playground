@@ -11,7 +11,7 @@ import json
 from pathlib import Path
 import logging
 from collections.abc import Sequence
-from typing import TypedDict, NotRequired, cast
+from typing import Literal, TypedDict, NotRequired, cast
 
 from config import Config
 from ingest.embed import get_embeddings_batch
@@ -31,6 +31,9 @@ class FAQMetadata(TypedDict):
     question: str
     answer: str
     id: int
+
+
+FAQColumn = Literal["question", "answer"]
 
 
 def create_chroma_client() -> ClientAPI:
@@ -78,8 +81,27 @@ def load_processed_data(data_path: str | Path) -> list[FAQEntry]:
     return data
 
 
+def build_embedding_text(item: FAQEntry, columns: Sequence[FAQColumn]) -> str:
+    """Build the text that will be embedded from the given FAQ entry."""
+    if not columns:
+        raise ValueError("columns must not be empty")
+
+    parts = [item[col] for col in columns]
+    # Keep a stable separator so q+a is deterministic.
+    return "\n\n".join(parts)
+
+
+def collection_name_for(columns: Sequence[FAQColumn]) -> str:
+    """Derive a collection name suffix based on embedding strategy."""
+    key = "+".join(columns)
+    return f"{Config.CHROMA_COLLECTION_NAME}__{key}"
+
+
 def index_faq_data(
-    collection: Collection, faq_data: Sequence[FAQEntry], batch_size: int = 100
+    collection: Collection,
+    faq_data: Sequence[FAQEntry],
+    columns: Sequence[FAQColumn],
+    batch_size: int = 100,
 ) -> None:
     """
     Index FAQ data into Chroma collection.
@@ -98,13 +120,18 @@ def index_faq_data(
         # Note: Chroma doesn't have a direct clear method, so we'll delete and recreate
         # For now, we'll just add new items with unique IDs
 
-    # Extract texts for embedding
-    texts = [item["question"] for item in faq_data]
+    # Build texts for embedding based on selected columns
+    texts = [build_embedding_text(item, columns) for item in faq_data]
     ids = [f"faq_{item['id']}" for item in faq_data]
     metadatas: list[Metadata] = [
         cast(
             Metadata,
-            {"question": item["question"], "answer": item["answer"], "id": item["id"]},
+            {
+                "question": item["question"],
+                "answer": item["answer"],
+                "id": item["id"],
+                "embedding_columns": "+".join(columns),
+            },
         )
         for item in faq_data
     ]
@@ -143,15 +170,23 @@ def main() -> None:
     processed_data_file = Path(Config.PROCESSED_DATA_DIR) / "faq_processed.json"
     faq_data = load_processed_data(processed_data_file)
 
-    # Create Chroma client and collection
+    # Create Chroma client
     client = create_chroma_client()
-    collection = recreate_collection(client)
+    strategies: list[list[FAQColumn]] = [
+        ["question"],
+        ["answer"],
+        ["question", "answer"],
+    ]
 
-    # Index the data
-    index_faq_data(collection, faq_data)
+    for columns in strategies:
+        name = collection_name_for(columns)
+        collection = recreate_collection(client, collection_name=name)
+        index_faq_data(collection, faq_data, columns=columns)
+        logger.info(
+            f"Collection {name} now contains {collection.count()} items (columns={'+'.join(columns)})"
+        )
 
     logger.info("Indexing complete!")
-    logger.info(f"Collection now contains {collection.count()} items")
 
 
 if __name__ == "__main__":

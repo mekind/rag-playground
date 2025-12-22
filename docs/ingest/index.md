@@ -77,15 +77,17 @@ Indexes FAQ data into Chroma collection.
 **Parameters:**
 - `collection`: Chroma collection object
 - `faq_data` (list[dict]): FAQ data to index
+- `columns` (list[str]): Which FAQ fields are used to build the text that will be embedded (e.g. `["question"]`, `["answer"]`, `["question", "answer"]`)
 - `batch_size` (int): Number of items to process per batch (default: 100)
 
 **Type signature (Python):**
 
-`index_faq_data(collection: chromadb.api.models.Collection.Collection, faq_data: collections.abc.Sequence[FAQEntry], batch_size: int = 100) -> None`
+`index_faq_data(collection: chromadb.api.models.Collection.Collection, faq_data: collections.abc.Sequence[FAQEntry], columns: collections.abc.Sequence[str], batch_size: int = 100) -> None`
 
 **Behavior:**
 - Checks for existing data in collection
-- Extracts texts, IDs, and metadata from FAQ data
+- Builds the embedding input text from `columns`
+- Extracts IDs and metadata from FAQ data
 - Generates embeddings using `get_embeddings_batch()`
 - Adds documents to Chroma in batches
 - Logs progress for each batch
@@ -104,8 +106,11 @@ Main indexing pipeline that orchestrates the entire indexing process.
 **Behavior:**
 - Validates configuration
 - Loads processed FAQ data
-- Creates Chroma client and collection
-- Indexes all FAQ entries
+- Creates a Chroma client
+- Recreates and indexes multiple collections for different embedding strategies:
+  - question-only embeddings
+  - answer-only embeddings
+  - question+answer combined embeddings
 - Logs completion and final count
 
 **Type signature (Python):**
