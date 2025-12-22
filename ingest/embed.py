@@ -1,8 +1,10 @@
 """Generate embeddings using OpenAI API."""
 
+from __future__ import annotations
+
 import openai
 import logging
-from typing import List, Optional
+from typing import TypeAlias
 import time
 
 from config import Config
@@ -14,7 +16,11 @@ logger = logging.getLogger(__name__)
 openai.api_key = Config.OPENAI_API_KEY
 
 
-def get_embedding(text: str, model: Optional[str] = None) -> List[float]:
+EmbeddingVector: TypeAlias = list[float]
+EmbeddingMatrix: TypeAlias = list[EmbeddingVector]
+
+
+def get_embedding(text: str, model: str | None = None) -> EmbeddingVector:
     """
     Generate embedding for a single text using OpenAI API.
 
@@ -39,8 +45,8 @@ def get_embedding(text: str, model: Optional[str] = None) -> List[float]:
 
 
 def get_embeddings_batch(
-    texts: List[str], model: Optional[str] = None, batch_size: int = 100
-) -> List[List[float]]:
+    texts: list[str], model: str | None = None, batch_size: int = 100
+) -> EmbeddingMatrix:
     """
     Generate embeddings for multiple texts in batches.
 

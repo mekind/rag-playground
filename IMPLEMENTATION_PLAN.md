@@ -99,6 +99,7 @@ rag-lab/
 2. **Error Handling**: Handle exception cases such as API call failures, missing data, etc.
 3. **Logging**: Record progress at each step with logs
 4. **Configuration Management**: Avoid hardcoding, use configuration files or environment variables
+5. **Type Hints (Workspace Rule)**: Maintain explicit Python type hints (enforced for `ingest/*`). See `docs/conventions/python_typing.md`.
 
 ## Implementation Priority
 

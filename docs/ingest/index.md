@@ -13,6 +13,10 @@ Creates and returns a persistent Chroma client instance.
 **Returns:**
 - `chromadb.PersistentClient`: Chroma client configured for persistence
 
+**Type signature (Python):**
+
+`create_chroma_client() -> chromadb.api.ClientAPI`
+
 **Behavior:**
 - Creates a persistent client using Config.CHROMA_PERSIST_DIRECTORY
 - Disables telemetry for privacy
@@ -27,6 +31,10 @@ Creates or retrieves a Chroma collection.
 
 **Returns:**
 - `Collection`: Chroma collection object
+
+**Type signature (Python):**
+
+`create_collection(client: chromadb.api.ClientAPI, collection_name: str | None = None) -> chromadb.api.models.Collection.Collection`
 
 **Behavior:**
 - Attempts to get existing collection
@@ -43,6 +51,14 @@ Loads processed FAQ data from JSON file.
 **Returns:**
 - `list[dict]`: List of FAQ entries with id, question, answer, text fields
 
+**Type signature (Python):**
+
+`load_processed_data(data_path: str | pathlib.Path) -> list[FAQEntry]`
+
+**Data shape (TypedDict):**
+
+`FAQEntry = TypedDict("FAQEntry", {"id": int, "question": str, "answer": str, "text": NotRequired[str]})`
+
 **Behavior:**
 - Validates file existence
 - Loads JSON data
@@ -57,6 +73,10 @@ Indexes FAQ data into Chroma collection.
 - `collection`: Chroma collection object
 - `faq_data` (list[dict]): FAQ data to index
 - `batch_size` (int): Number of items to process per batch (default: 100)
+
+**Type signature (Python):**
+
+`index_faq_data(collection: chromadb.api.models.Collection.Collection, faq_data: collections.abc.Sequence[FAQEntry], batch_size: int = 100) -> None`
 
 **Behavior:**
 - Checks for existing data in collection
@@ -82,6 +102,10 @@ Main indexing pipeline that orchestrates the entire indexing process.
 - Creates Chroma client and collection
 - Indexes all FAQ entries
 - Logs completion and final count
+
+**Type signature (Python):**
+
+`main() -> None`
 
 ## Dependencies
 

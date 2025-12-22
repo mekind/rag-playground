@@ -33,3 +33,14 @@ py-modules = ["config"]
 where = ["."]
 include = ["app*", "data*", "ingest*", "retrieval*", "evaluation*"]
 
+[tool.mypy]
+python_version = "3.12"
+ignore_missing_imports = true
+warn_return_any = true
+warn_unused_ignores = true
+no_implicit_optional = true
+
+[[tool.mypy.overrides]]
+module = ["ingest.*"]
+disallow_untyped_defs = true
+

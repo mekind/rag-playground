@@ -17,6 +17,10 @@ Generates an embedding vector for a single text string.
 **Returns:**
 - `list[float]`: List of embedding values (vector representation)
 
+**Type signature (Python):**
+
+`get_embedding(text: str, model: str | None = None) -> list[float]`
+
 **Behavior:**
 - Uses OpenAI API to generate embeddings
 - Handles API errors and logs them
@@ -33,6 +37,10 @@ Generates embeddings for multiple texts in batches.
 
 **Returns:**
 - `list[list[float]]`: List of embedding vectors, one per input text
+
+**Type signature (Python):**
+
+`get_embeddings_batch(texts: list[str], model: str | None = None, batch_size: int = 100) -> list[list[float]]`
 
 **Behavior:**
 - Processes texts in batches to manage API rate limits
