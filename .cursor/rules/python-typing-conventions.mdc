@@ -1,0 +1,27 @@
+---
+alwaysApply: true
+---
+
+Python Typing Conventions (Workspace Rule)
+
+Purpose
+- Keep Python code consistent, maintainable, and refactor-friendly via explicit type hints.
+
+Core Rules
+- Type hints are required for all public functions in actively maintained modules (starting with `ingest/`).
+- Prefer PEP 604 unions (`str | None`) over `Optional[str]`.
+- Prefer built-in generics (`list[str]`, `dict[str, int]`) over `typing.List`, `typing.Dict`.
+- Prefer `collections.abc` types for inputs (e.g. `Sequence[str]`) and concrete types for outputs (e.g. `list[list[float]]`).
+- Avoid `Any` at module boundaries. If unavoidable (third-party libraries), isolate it behind `Protocol` or `TypedDict`.
+- Keep JSON-loaded data typed via `TypedDict` (and `typing.cast` if needed).
+
+Ingest Module Requirement (Enforced)
+- All functions in `ingest/*` must have explicit parameter and return types.
+- Shared data shapes must be expressed as `TypedDict` (e.g. FAQ entries, metadata).
+- Chroma client typing should use `chromadb.api.ClientAPI` when applicable.
+- Chroma collection interactions should be typed via minimal `Protocol` interfaces to avoid depending on internal Chroma types.
+
+Tooling
+- `mypy` is used to type-check `ingest.*`.
+- Configuration should enforce `disallow_untyped_defs = true` for `ingest.*` while staying permissive elsewhere.
+

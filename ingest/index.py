@@ -6,6 +6,7 @@ import chromadb
 from chromadb.config import Settings
 from chromadb.api import ClientAPI
 from chromadb.api.models.Collection import Collection
+from chromadb.api.types import Metadata
 import json
 from pathlib import Path
 import logging
@@ -41,21 +42,23 @@ def create_chroma_client() -> ClientAPI:
     return cast(ClientAPI, client)
 
 
-def create_collection(
+def recreate_collection(
     client: ClientAPI, collection_name: str | None = None
 ) -> Collection:
-    """Create or get a Chroma collection."""
+    """Delete an existing collection (if present) and create a new one."""
     if collection_name is None:
         collection_name = Config.CHROMA_COLLECTION_NAME
 
     try:
-        collection = client.get_collection(name=collection_name)
-        logger.info(f"Using existing collection: {collection_name}")
+        client.delete_collection(name=collection_name)
+        logger.info(f"Deleted existing collection: {collection_name}")
     except Exception:
-        collection = client.create_collection(name=collection_name)
-        logger.info(f"Created new collection: {collection_name}")
+        # Collection might not exist; continue to create.
+        logger.info(f"No existing collection to delete: {collection_name}")
 
-    return cast(Collection, collection)
+    collection = cast(Collection, client.create_collection(name=collection_name))
+    logger.info(f"Created new collection: {collection_name}")
+    return collection
 
 
 def load_processed_data(data_path: str | Path) -> list[FAQEntry]:
@@ -98,8 +101,11 @@ def index_faq_data(
     # Extract texts for embedding
     texts = [item["question"] for item in faq_data]
     ids = [f"faq_{item['id']}" for item in faq_data]
-    metadatas = [
-        {"question": item["question"], "answer": item["answer"], "id": item["id"]}
+    metadatas: list[Metadata] = [
+        cast(
+            Metadata,
+            {"question": item["question"], "answer": item["answer"], "id": item["id"]},
+        )
         for item in faq_data
     ]
 
@@ -113,11 +119,11 @@ def index_faq_data(
         batch_ids = ids[i : i + batch_size]
         batch_embeddings = embeddings[i : i + batch_size]
         batch_texts = texts[i : i + batch_size]
-        batch_metadatas = cast(list[FAQMetadata], metadatas[i : i + batch_size])
+        batch_metadatas = metadatas[i : i + batch_size]
 
         collection.add(
             ids=batch_ids,
-            embeddings=batch_embeddings,
+            embeddings=cast(list[Sequence[float]], batch_embeddings),
             documents=batch_texts,
             metadatas=batch_metadatas,
         )
@@ -139,7 +145,7 @@ def main() -> None:
 
     # Create Chroma client and collection
     client = create_chroma_client()
-    collection = create_collection(client)
+    collection = recreate_collection(client)
 
     # Index the data
     index_faq_data(collection, faq_data)

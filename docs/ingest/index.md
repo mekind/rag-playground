@@ -22,23 +22,28 @@ Creates and returns a persistent Chroma client instance.
 - Disables telemetry for privacy
 
 ### Function: `create_collection(client, collection_name=None)`
-
 Creates or retrieves a Chroma collection.
+
+**Note:** The current implementation performs "get-or-create" logic directly in `main()` rather than exposing a separate `create_collection()` helper.
+
+### Function: `recreate_collection(client, collection_name=None)`
+
+Deletes an existing Chroma collection (if present) and creates a fresh one.
 
 **Parameters:**
 - `client`: Chroma client instance
 - `collection_name` (str, optional): Name of collection (defaults to Config.CHROMA_COLLECTION_NAME)
 
 **Returns:**
-- `Collection`: Chroma collection object
+- `Collection`: Newly created Chroma collection object
 
 **Type signature (Python):**
 
-`create_collection(client: chromadb.api.ClientAPI, collection_name: str | None = None) -> chromadb.api.models.Collection.Collection`
+`recreate_collection(client: chromadb.api.ClientAPI, collection_name: str | None = None) -> chromadb.api.models.Collection.Collection`
 
 **Behavior:**
-- Attempts to get existing collection
-- Creates new collection if it doesn't exist
+- Attempts to delete the existing collection by name
+- Creates a new collection with the same name
 - Logs the operation
 
 ### Function: `load_processed_data(data_path)`
