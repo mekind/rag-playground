@@ -15,7 +15,7 @@ A class that implements the complete RAG pipeline from query to generated answer
 **Parameters:**
 - `collection_name` (str | list[str] | None, optional): One collection name or multiple collection names to search.
   - If `None`, defaults to `Config.CHROMA_COLLECTION_NAME`.
-  - If a list is provided, retrieval will search across multiple collections (embedding strategies) and merge results.
+  - If a list is provided, retrieval can search across multiple collections (embedding strategies).
 
 **Behavior:**
 - Initializes VectorSearch instance for retrieval
@@ -78,7 +78,8 @@ Generates an answer using the complete RAG pipeline.
     - `error` (str, optional): Error message if generation failed
 
 **Behavior:**
-1. Retrieves relevant documents using VectorSearch (single collection or multi-collection merged search)
+1. Retrieves relevant documents using VectorSearch
+   - In multi-collection setups, the pipeline uses a **merged** retrieval view (e.g. `VectorSearch.search_merged()`) to build a single unified context for the LLM.
 2. If no results found, returns error message
 3. Formats retrieved context
 4. Generates prompt with context and query

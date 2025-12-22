@@ -42,7 +42,11 @@ def run_retrieval_eval(
 ) -> RetrievalEvalSummary:
     samples = load_retrieval_eval_jsonl(eval_path)
 
-    out = Path(out_dir) if out_dir is not None else Path("runs") / f"retrieval_eval_{_now_ts()}"
+    out = (
+        Path(out_dir)
+        if out_dir is not None
+        else Path("runs") / f"retrieval_eval_{_now_ts()}"
+    )
     out.mkdir(parents=True, exist_ok=True)
 
     vs = VectorSearch(collection_name=collection_name)
@@ -61,11 +65,13 @@ def run_retrieval_eval(
     with per_sample_path.open("w", encoding="utf-8") as f:
         for s in samples:
             t0 = time.perf_counter()
-            results = vs.search(s.query, top_k=top_k, threshold=threshold)
+            results = vs.search_merged(s.query, top_k=top_k, threshold=threshold)
             dt_ms = (time.perf_counter() - t0) * 1000.0
 
             retrieved_ids: list[str] = [str(r.get("id")) for r in results if "id" in r]
-            metrics = compute_retrieval_metrics(retrieved_ids=retrieved_ids, gold_ids=s.gold_ids, k=top_k)
+            metrics = compute_retrieval_metrics(
+                retrieved_ids=retrieved_ids, gold_ids=s.gold_ids, k=top_k
+            )
 
             retrieved_compact = [
                 {"id": str(r.get("id")), "similarity": float(r.get("similarity", 0.0))}
@@ -99,7 +105,9 @@ def run_retrieval_eval(
         "metric_avgs": metric_avgs,
         "per_sample_path": str(per_sample_path),
     }
-    (out / "summary.json").write_text(json.dumps(summary_obj, ensure_ascii=False, indent=2), encoding="utf-8")
+    (out / "summary.json").write_text(
+        json.dumps(summary_obj, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
 
     # report
     write_retrieval_report(
@@ -117,5 +125,3 @@ def run_retrieval_eval(
         metric_avgs=metric_avgs,
         out_dir=str(out),
     )
-
-

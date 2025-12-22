@@ -26,6 +26,13 @@ Configures the Streamlit page with:
 - Stores in session state for persistence across interactions
 - Handles initialization errors gracefully
 - Stops application if initialization fails
+  
+**Embedding strategy collections:**
+For strategy comparison, the app can initialize retrieval against multiple Chroma collections created by the indexing pipeline (see `docs/ingest/index.md`). A common naming scheme is:
+- `<base>__question`
+- `<base>__answer`
+- `<base>__question_answer`
+where `<base>` is `Config.CHROMA_COLLECTION_NAME`.
 
 ### UI Components
 
@@ -53,11 +60,15 @@ Configures the Streamlit page with:
   - Entry text and metadata
 
 #### Results Display (Retrieval Only Mode)
-- **Search Results**: List of retrieved FAQ entries
+- **Search Results (by embedding strategy)**: Retrieval-only mode is designed to compare retrieval quality across different embedding strategies / collections.
+- The UI renders results **separated per collection** (strategy), using the return shape of `VectorSearch.search()` documented in `docs/retrieval/search.md`:
+  - `dict[str, list[dict]]` where each key is a collection name and the value is that collection’s ranked hits.
+- For each strategy/collection, the UI shows a dedicated section (e.g., tabs or expanders) containing the list of retrieved FAQ entries.
 - Each result shows:
   - Similarity score
   - Full text
   - Question and ID from metadata
+  - Collection name (strategy) label (when available)
 
 #### Footer
 - Information about the RAG system

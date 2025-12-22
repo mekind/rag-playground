@@ -105,7 +105,9 @@ Answer:"""
 
         # Step 1: Retrieve relevant documents
         logger.info(f"Retrieving documents for query: {query}")
-        search_results = self.search.search(query, top_k=top_k, threshold=threshold)
+        search_results = self.search.search_merged(
+            query, top_k=top_k, threshold=threshold
+        )
 
         if not search_results:
             return {

@@ -2,7 +2,9 @@
 
 ## 목적/책임
 
-`retrieval_runner.py`는 평가셋을 순회하며 `retrieval.search.VectorSearch.search()`를 호출해 retrieval 결과를 수집하고, `evaluation.retrieval_metrics`로 채점한 뒤 결과 아티팩트(JSONL)와 요약 리포트를 생성합니다.
+`retrieval_runner.py`는 평가셋을 순회하며 retrieval 결과를 수집하고, `evaluation.retrieval_metrics`로 채점한 뒤 결과 아티팩트(JSONL)와 요약 리포트를 생성합니다.
+
+검색 호출은 기본적으로 **단일 병합 랭킹**이 필요한 평가 목적에 맞춰 `retrieval.search.VectorSearch.search_merged()`를 사용합니다. (`VectorSearch.search()`는 임베딩 전략(컬렉션)별 결과를 분리 반환하는 형태이므로, 평가 러너의 기본 출력과는 맞지 않습니다.)
 
 ## 주요 컴포넌트
 

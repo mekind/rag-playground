@@ -22,8 +22,7 @@ class VectorSearch:
 
         Args:
             collection_name: Name(s) of Chroma collection(s) (defaults to Config value).
-                If multiple names are provided, search will be executed across all collections
-                and results will be merged.
+                If multiple names are provided, search can be executed across all collections.
         """
         if collection_name is None:
             collection_names = [Config.CHROMA_COLLECTION_NAME]
@@ -51,7 +50,7 @@ class VectorSearch:
 
     def search(
         self, query: str, top_k: int | None = None, threshold: float | None = None
-    ) -> list[dict[str, Any]]:
+    ) -> dict[str, list[dict[str, Any]]]:
         """
         Search for similar FAQ entries.
 
@@ -61,7 +60,7 @@ class VectorSearch:
             threshold: Minimum similarity threshold (defaults to Config.SIMILARITY_THRESHOLD)
 
         Returns:
-            List of search results with metadata
+            Mapping from collection name to a list of search results with metadata
         """
         if top_k is None:
             top_k = Config.TOP_K
@@ -71,8 +70,10 @@ class VectorSearch:
         # Generate query embedding
         query_embedding = get_embedding(query)
 
-        # Search in Chroma (single or multiple collections) and merge results.
-        merged: dict[str, dict[str, Any]] = {}
+        # Search in Chroma per collection (embedding strategy).
+        per_collection: dict[str, list[dict[str, Any]]] = {
+            name: [] for name in self.collections.keys()
+        }
         for collection_name, collection in self.collections.items():
             results = collection.query(
                 query_embeddings=[query_embedding], n_results=top_k
@@ -83,6 +84,64 @@ class VectorSearch:
 
             for i in range(len(results["ids"][0])):
                 # Convert distance to similarity score
+                distance = results["distances"][0][i]
+                similarity = 1 - distance  # Assuming cosine distance
+
+                # if similarity < threshold:
+                #     continue
+
+                metadata = results["metadatas"][0][i]
+                doc_id = results["ids"][0][i]
+
+                candidate: dict[str, Any] = {
+                    "id": doc_id,
+                    "text": results["documents"][0][i],
+                    "metadata": metadata,
+                    "distance": distance,
+                    "similarity": similarity,
+                    "collection_name": collection_name,
+                }
+
+                per_collection[collection_name].append(candidate)
+
+        # Sort and clip per collection.
+        for name, items in per_collection.items():
+            items.sort(key=lambda r: float(r.get("similarity", 0.0)), reverse=True)
+            per_collection[name] = items[:top_k]
+
+        logger.info(
+            "Searched query: %s... (collections=%s)",
+            query[:50],
+            self.collection_names,
+        )
+        return per_collection
+
+    def search_merged(
+        self, query: str, top_k: int | None = None, threshold: float | None = None
+    ) -> list[dict[str, Any]]:
+        """
+        Search across one or more collections and return a single merged ranked list.
+
+        This is useful for pipelines (e.g. RAG) that want a unified context rather than
+        comparing embedding strategies side-by-side.
+        """
+        if top_k is None:
+            top_k = Config.TOP_K
+        if threshold is None:
+            threshold = Config.SIMILARITY_THRESHOLD
+
+        query_embedding = get_embedding(query)
+
+        merged: dict[str, dict[str, Any]] = {}
+        for collection_name, collection in self.collections.items():
+            results = collection.query(
+                query_embeddings=[query_embedding], n_results=top_k
+            )
+
+            if not results.get("ids") or not results["ids"][0]:
+                continue
+
+            for i in range(len(results["ids"][0])):
                 distance = results["distances"][0][i]
                 similarity = 1 - distance  # Assuming cosine distance
 
@@ -119,7 +178,10 @@ class VectorSearch:
         )[:top_k]
 
         logger.info(
-            f"Found {len(formatted_results)} results for query: {query[:50]}... (collections={self.collection_names})"
+            "Merged-search found %s results for query: %s... (collections=%s)",
+            len(formatted_results),
+            query[:50],
+            self.collection_names,
         )
         return formatted_results
 
