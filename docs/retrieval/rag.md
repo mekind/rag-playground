@@ -13,7 +13,9 @@ A class that implements the complete RAG pipeline from query to generated answer
 #### Initialization: `__init__(collection_name=None)`
 
 **Parameters:**
-- `collection_name` (str, optional): Name of Chroma collection
+- `collection_name` (str | list[str] | None, optional): One collection name or multiple collection names to search.
+  - If `None`, defaults to `Config.CHROMA_COLLECTION_NAME`.
+  - If a list is provided, retrieval will search across multiple collections (embedding strategies) and merge results.
 
 **Behavior:**
 - Initializes VectorSearch instance for retrieval
@@ -76,7 +78,7 @@ Generates an answer using the complete RAG pipeline.
     - `error` (str, optional): Error message if generation failed
 
 **Behavior:**
-1. Retrieves relevant documents using VectorSearch
+1. Retrieves relevant documents using VectorSearch (single collection or multi-collection merged search)
 2. If no results found, returns error message
 3. Formats retrieved context
 4. Generates prompt with context and query

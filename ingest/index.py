@@ -93,7 +93,7 @@ def build_embedding_text(item: FAQEntry, columns: Sequence[FAQColumn]) -> str:
 
 def collection_name_for(columns: Sequence[FAQColumn]) -> str:
     """Derive a collection name suffix based on embedding strategy."""
-    key = "+".join(columns)
+    key = "_".join(columns)
     return f"{Config.CHROMA_COLLECTION_NAME}__{key}"
 
 

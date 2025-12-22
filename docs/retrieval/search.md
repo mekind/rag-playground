@@ -13,12 +13,22 @@ A class that encapsulates vector search operations using Chroma.
 #### Initialization: `__init__(collection_name=None)`
 
 **Parameters:**
-- `collection_name` (str, optional): Name of Chroma collection (defaults to Config.CHROMA_COLLECTION_NAME)
+- `collection_name` (str | list[str] | None, optional): One collection name or multiple collection names.
+  - If `None`, defaults to `Config.CHROMA_COLLECTION_NAME`.
+  - If a list is provided, the instance will search across **multiple collections** and merge the results.
 
 **Behavior:**
 - Initializes Chroma persistent client
-- Retrieves or creates the specified collection
-- Stores collection reference for search operations
+- Retrieves or creates the specified collection(s)
+- Stores collection reference(s) for search operations
+
+**Embedding strategy and collections (from `docs/ingest/index.md`):**
+Indexing can create multiple Chroma collections for different embedding strategies, such as:
+- question-only embeddings
+- answer-only embeddings
+- question+answer combined embeddings
+
+When `collection_name` is a list, `VectorSearch` will query each collection (same query embedding) and then merge results into a single ranked list.
 
 #### Method: `search(query, top_k=None, threshold=None)`
 
@@ -36,12 +46,17 @@ Searches for similar FAQ entries based on query text.
   - `metadata` (dict): Document metadata (question, answer, id)
   - `distance` (float): Distance score from Chroma
   - `similarity` (float): Converted similarity score (1 - distance)
+  - `collection_name` (str, optional): Which collection the hit came from (present when searching multiple collections)
 
 **Behavior:**
 - Generates embedding for query using `get_embedding()`
-- Queries Chroma collection with query embedding
+- Queries the configured Chroma collection(s) with the query embedding
 - Converts Chroma distance scores to similarity scores
 - Filters results by similarity threshold
+- When multiple collections are configured:
+  - Merges results from all collections into a single list
+  - De-duplicates by FAQ identity (prefers higher similarity when duplicates occur)
+  - Sorts by similarity descending and returns the top `top_k`
 - Formats and returns results with metadata
 - Logs search operation
 
