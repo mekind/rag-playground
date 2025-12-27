@@ -86,22 +86,22 @@ def preprocess_faq_data(raw_data):
         for idx, item in enumerate(raw_data):
             if isinstance(item, dict):
                 # Try to extract question and answer with various key names
-                # Mental Health FAQ dataset uses "Questions" and "Answers" (plural)
+                # Prefer HF WebFAQ keys ("question", "answer") and fall back to other common variants.
                 question = (
-                    item.get("Questions")
+                    item.get("question")
+                    or item.get("Questions")
                     or item.get("Question")
-                    or item.get("question")
                     or item.get("q")
                 )
                 answer = (
-                    item.get("Answers")
+                    item.get("answer")
+                    or item.get("Answers")
                     or item.get("Answer")
-                    or item.get("answer")
                     or item.get("a")
                     or item.get("response")
                 )
-                # Use Question_ID if available, otherwise use index
-                question_id = item.get("Question_ID") or str(idx)
+                # Prefer stable IDs when available (HF datasets often provide `id`).
+                question_id = item.get("id") or item.get("Question_ID") or str(idx)
 
                 if question and answer:
                     processed_data.append(

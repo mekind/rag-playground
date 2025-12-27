@@ -1,36 +1,35 @@
-# evaluation/retrieval_report.py 문서
+# evaluation/retrieval_report.py Documentation
 
-## 목적/책임
+## Purpose and Responsibility
 
-`retrieval_report.py`는 retrieval 평가 결과(샘플별 메트릭 및 집계값)를 사람이 읽기 좋은 형태로 요약합니다. 기본 출력은 CSV 및 Markdown이며, 실패 케이스(낮은 점수 샘플)도 함께 제공합니다.
+`retrieval_report.py` summarizes retrieval evaluation results (per-sample metrics and aggregates) in a human-readable form. Default outputs are CSV and Markdown, and it can also include a list of failure cases (low-scoring samples).
 
-## 주요 컴포넌트
+## Main Components
 
-### 함수: `write_retrieval_report(...)`
+### Function: `write_retrieval_report(...)`
 
-- 입력
-  - per-sample 결과 리스트(또는 per-sample JSONL 경로)
-  - 출력 디렉토리
-  - `k` (컷오프)
-  - `top_n_failures` (옵션)
-- 출력
-  - `report.csv`: aggregate 메트릭(평균/표준편차/샘플 수 등)
-  - `report.md`: 요약 + 실패 케이스 리스트
+- **Inputs**
+  - per-sample results list (or a per-sample JSONL path)
+  - output directory
+  - `k` (cutoff)
+  - `top_n_failures` (optional)
+- **Outputs**
+  - `report.csv`: aggregate metrics (mean/stddev, sample counts, etc.)
+  - `report.md`: summary plus failure-case list
 
-## 리포트 내용(권장)
+## Suggested report contents
 
-- Overall(평균): `Hit@k`, `Recall@k`, `MRR@k`, `nDCG@k`
-- 샘플 수/스킵 수
-- Worst samples: `mrr@k` 또는 `recall@k`가 낮은 순 상위 N개
+- Overall averages: `Hit@k`, `Recall@k`, `MRR@k`, `nDCG@k`
+- Sample count / skipped count
+- Worst samples: top N by lowest `mrr@k` or `recall@k`
 
-## 출력 파일(권장)
+## Suggested output files
 
 - `report.csv`
-  - 집계 메트릭(평균/표준편차), 샘플 수, 스킵 수
+  - aggregate metrics (mean/stddev), sample counts, skipped counts
 - `report.md`
-  - 요약 테이블 + 실패 케이스 목록(질문, gold_ids, retrieved_ids, 주요 메트릭)
+  - summary table + failure-case list (query, `gold_ids`, `retrieved_ids`, key metrics)
 
-## 의존성/가정
+## Dependencies and Assumptions
 
-- runner가 생성한 per-sample 결과(메트릭 포함)를 입력으로 받는다고 가정합니다.
-
+- Assumes inputs are per-sample results produced by the runner (including computed metrics).

@@ -1,13 +1,10 @@
-"""Download Mental Health FAQ dataset from Kaggle."""
+"""Load and save FAQ-style datasets into data/raw/."""
 
-import os
-import sys
-import csv
 import json
 from pathlib import Path
 import logging
 
-from kaggle.api.kaggle_api_extended import KaggleApi
+from datasets import load_dataset
 
 from config import Config
 
@@ -15,77 +12,52 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-def setup_kaggle_api():
-    """Setup and authenticate Kaggle API client."""
-
-    _kaggle_json = Path(__file__).parent.parent / ".data" / "kaggle.json"
-    if not _kaggle_json.exists():
-        raise FileNotFoundError(f"kaggle.json not found at {_kaggle_json}")
-    return KaggleApi(str(_kaggle_json))
-
-
-def csv_to_json(csv_path: Path, json_path: Path) -> Path:
-    """Convert CSV file to JSON format.
-
-    Args:
-        csv_path: Path to the source CSV file
-        json_path: Path to the destination JSON file
-
-    Returns:
-        Path to the created JSON file
-    """
-    data = []
-    with open(csv_path, "r", encoding="utf-8") as f:
-        reader = csv.DictReader(f)
-        for row in reader:
-            data.append(row)
-
-    with open(json_path, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
-
-    logger.info(f"Converted {csv_path} to {json_path} ({len(data)} records)")
-    return json_path
-
-
 def download_dataset():
-    """Download Mental Health FAQ dataset from Kaggle and convert to JSON."""
-    # Create data directories
+    """
+    Load the dataset via Hugging Face Datasets and save it to data/raw/ as JSON.
+
+    Note:
+      If the dataset requires access, login first (e.g. `huggingface-cli login`).
+    """
     raw_data_dir = Path(Config.RAW_DATA_DIR)
     raw_data_dir.mkdir(parents=True, exist_ok=True)
 
-    logger.info("Setting up Kaggle API...")
-    api = setup_kaggle_api()
+    dataset_id = "PaDaS-Lab/webfaq"
+    dataset_config = "kor"
+    out_path = raw_data_dir / "webfaq_kor.json"
 
-    # Dataset identifier
-    dataset = "narendrageek/mental-health-faq-for-chatbot"
+    logger.info("Loading dataset via Hugging Face Datasets...")
+    logger.info("Dataset: %s (%s)", dataset_id, dataset_config)
+    ds = load_dataset(dataset_id, dataset_config)
 
-    logger.info(f"Downloading dataset: {dataset}")
-    logger.info(f"Destination: {raw_data_dir}")
+    # Save as a single JSON array so data/preprocess.py can discover and load it.
+    logger.info("Saving to: %s", out_path)
+    num_rows = 0
+    with out_path.open("w", encoding="utf-8") as f:
+        f.write("[\n")
+        first = True
 
-    try:
-        api.dataset_download_files(dataset, path=str(raw_data_dir), unzip=True)
-        logger.info("Dataset downloaded successfully!")
-
-        # Convert CSV to JSON
-        csv_file = raw_data_dir / "Mental_Health_FAQ.csv"
-        json_file = raw_data_dir / "Mental_Health_FAQ.json"
-
-        if csv_file.exists():
-            csv_to_json(csv_file, json_file)
-            # Remove the original CSV file
-            csv_file.unlink()
-            logger.info(f"Removed original CSV file: {csv_file}")
+        # ds is typically a DatasetDict (split -> Dataset). Handle both DatasetDict and Dataset.
+        if hasattr(ds, "items"):
+            split_items = list(ds.items())  # type: ignore[no-any-return]
         else:
-            logger.warning(f"CSV file not found: {csv_file}")
+            split_items = [("train", ds)]
 
-        return json_file
-    except Exception as e:
-        logger.error(f"Error downloading dataset: {e}")
-        logger.info(
-            "Note: You may need to manually download the dataset from Kaggle "
-            "and place it in the data/raw/ directory"
-        )
-        raise e
+        for split_name, split_ds in split_items:
+            for row in split_ds:
+                obj = dict(row)
+                obj["_split"] = split_name
+
+                if not first:
+                    f.write(",\n")
+                json.dump(obj, f, ensure_ascii=False)
+                first = False
+                num_rows += 1
+
+        f.write("\n]\n")
+
+    logger.info("Saved %s rows to %s", num_rows, out_path)
+    return out_path
 
 
 if __name__ == "__main__":

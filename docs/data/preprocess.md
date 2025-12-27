@@ -31,7 +31,7 @@ Converts raw data into standardized Q-A pairs.
 
 **Returns:**
 - `list[dict]`: List of processed FAQ entries, each containing:
-  - `id` (str): 고유 식별자 (JSON의 `Question_ID` 또는 인덱스)
+  - `id` (str): Stable identifier (e.g. `Question_ID` from JSON, or a fallback index)
   - `question` (str): Question text
   - `answer` (str): Answer text
   - `text` (str): Combined "Q: {question}\nA: {answer}" format for embedding
@@ -43,9 +43,9 @@ Converts raw data into standardized Q-A pairs.
 - Handles JSON format:
   - Supports both list and single dict formats
   - Extracts question/answer from various key name variations:
-    - Question keys: `Questions`, `Question`, `question`, `q`
-    - Answer keys: `Answers`, `Answer`, `answer`, `a`, `response`
-  - Uses `Question_ID` if available for ID field
+    - Question keys: `question`, `Questions`, `Question`, `q`
+    - Answer keys: `answer`, `Answers`, `Answer`, `a`, `response`
+  - Uses `id` (preferred) or `Question_ID` when available for the entry ID
 - Filters out empty or invalid entries
 - Creates combined text field for embedding
 
@@ -96,7 +96,7 @@ Main preprocessing pipeline that orchestrates the entire process.
 
 ### Mental Health FAQ Dataset (Kaggle)
 
-JSON 형식:
+JSON shape:
 ```json
 {
   "Question_ID": "1590140",
@@ -105,7 +105,7 @@ JSON 형식:
 }
 ```
 
-위 형식에서 자동으로 다음과 같이 변환됩니다:
+This is automatically converted into the standardized entry shape:
 ```json
 {
   "id": "1590140",
@@ -114,3 +114,21 @@ JSON 형식:
   "text": "Q: What does it mean to have a mental illness?\nA: Mental illnesses are health conditions..."
 }
 ```
+
+### WebFAQ (Hugging Face: `PaDaS-Lab/webfaq`, config: `kor`)
+
+This dataset is typically saved by `data/download_faq.py` as a JSON array (e.g. `data/raw/webfaq_kor.json`) with fields like:
+
+```json
+{
+  "id": "5f05cfecbd04b8349c5e26536c375761",
+  "question": "한국에서는 어떤 카지노 게임이 인기가 있나요?",
+  "answer": "한국인은 다양한 카지노 게임을 좋아합니다...",
+  "topic": "Entertainment, Recreation and Leisure",
+  "question_type": "Which",
+  "url": "http://...",
+  "_split": "default"
+}
+```
+
+The preprocessor maps `question` → `question`, `answer` → `answer`, and uses `id` as the stable identifier.

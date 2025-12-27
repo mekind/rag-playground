@@ -11,6 +11,7 @@ streamlit>=1.52.2
 # Using pandas 2.2.2 with numpy 1.26.4 for better stability
 pandas>=2.2.2,<3.0.0
 numpy>=1.26.4,<2.0.0
+datasets>=2.20.0
 
 # Kaggle API (for dataset download)
 kaggle>=1.8.2
