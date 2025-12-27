@@ -55,7 +55,8 @@ Each search result dictionary contains:
   - `collection_name` (str): Which collection the hit came from (same as the dict key; included for convenience in downstream formatting)
 
 **Behavior:**
-- Generates embedding for query using `get_embedding()`
+- Normalizes the user query into a **question-shaped** string (a lightweight rewrite step) before embedding.
+- Generates embedding for the rewritten query using `get_embedding()`
 - Queries the configured Chroma collection(s) with the query embedding
 - Converts Chroma distance scores to similarity scores
 - Filters results by similarity threshold
@@ -66,6 +67,12 @@ Each search result dictionary contains:
   - Returns a one-key mapping for consistent downstream handling
 - Formats and returns results with metadata
 - Logs search operation
+
+**Query rewrite note:**
+The rewrite step calls OpenAI chat completion to rewrite the user input into a clean, single Korean question (no answers, no extra text) before embedding. This is intended to improve alignment with collections indexed from `question` fields.
+
+- If the OpenAI call fails (missing API key, network error, etc.), the system falls back to a lightweight heuristic rewrite (punctuation/question-mark normalization).
+- Implementations should cache rewrite results per unique input to reduce latency/cost when the same query repeats.
 
 #### Method: `get_all_documents()`
 

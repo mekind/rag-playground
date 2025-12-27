@@ -4,13 +4,112 @@ import chromadb
 from chromadb.config import Settings
 import logging
 from collections.abc import Sequence
+from functools import lru_cache
 from typing import Any
+
+import openai
 
 from config import Config
 from ingest.embed import get_embedding
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+
+def _rewrite_query_as_question_heuristic(query: str) -> str:
+    """
+    Rewrite/normalize a user query into a question-shaped string.
+
+    This is a lightweight heuristic step intended to improve retrieval alignment,
+    especially for question-only embedding strategies, without adding extra network calls.
+    """
+    q = (query or "").strip()
+    if not q:
+        return q
+
+    # If it already looks like a question, keep it.
+    if q.endswith("?") or "?" in q:
+        return q
+
+    # Normalize common punctuation.
+    if q.endswith("."):
+        q = q[:-1].rstrip()
+
+    # Simple Korean-friendly heuristics for declarative endings.
+    if q.endswith("입니다"):
+        return q[: -len("입니다")].rstrip() + "인가요?"
+    if q.endswith("이다"):
+        return q[: -len("이다")].rstrip() + "인가요?"
+    if q.endswith("다"):
+        # Avoid aggressively changing the ending; just add a question mark.
+        return q + "?"
+
+    return q + "?"
+
+
+@lru_cache(maxsize=2048)
+def _rewrite_query_as_question_openai_cached(query: str) -> str:
+    """
+    Rewrite the query into a single Korean question using OpenAI.
+
+    Returns the rewritten question. Raises on API failure so callers can fall back.
+    """
+    q = (query or "").strip()
+    if not q:
+        return q
+
+    if not Config.OPENAI_API_KEY:
+        raise ValueError("OPENAI_API_KEY is not set")
+
+    client = openai.OpenAI(api_key=Config.OPENAI_API_KEY)
+    model = Config.LLM_MODEL
+
+    resp = client.chat.completions.create(
+        model=model,
+        messages=[
+            {
+                "role": "system",
+                "content": (
+                    "You rewrite user inputs into a single natural Korean question.\n"
+                    "Rules:\n"
+                    "- Preserve the original meaning.\n"
+                    "- Output ONLY the rewritten question, nothing else.\n"
+                    "- Do NOT answer.\n"
+                    "- Keep it to one sentence.\n"
+                    "- Ensure it ends with a question mark '?'."
+                ),
+            },
+            {"role": "user", "content": q},
+        ],
+        temperature=0.0,
+        max_completion_tokens=80,
+    )
+
+    text = (resp.choices[0].message.content or "").strip()
+    # Defensive normalization: take first non-empty line only.
+    text = next((line.strip() for line in text.splitlines() if line.strip()), "")
+    if not text:
+        return ""
+    if not text.endswith("?"):
+        text = text.rstrip(".") + "?"
+    return text
+
+
+def _rewrite_query_as_question(query: str) -> str:
+    """
+    Rewrite the user query into a question-shaped string (OpenAI-first).
+
+    Falls back to a heuristic rewrite when OpenAI is unavailable or fails.
+    """
+    q = (query or "").strip()
+    if not q:
+        return q
+
+    try:
+        return _rewrite_query_as_question_openai_cached(q)
+    except Exception as e:
+        logger.debug("Query rewrite via OpenAI failed; falling back. err=%s", e)
+        return _rewrite_query_as_question_heuristic(q)
 
 
 class VectorSearch:
@@ -67,8 +166,11 @@ class VectorSearch:
         if threshold is None:
             threshold = Config.SIMILARITY_THRESHOLD
 
+        # Rewrite query into a question-shaped string before embedding.
+        rewritten_query = _rewrite_query_as_question(query)
+
         # Generate query embedding
-        query_embedding = get_embedding(query)
+        query_embedding = get_embedding(rewritten_query)
 
         # Search in Chroma per collection (embedding strategy).
         per_collection: dict[str, list[dict[str, Any]]] = {
@@ -111,7 +213,7 @@ class VectorSearch:
 
         logger.info(
             "Searched query: %s... (collections=%s)",
-            query[:50],
+            rewritten_query[:50],
             self.collection_names,
         )
         return per_collection
@@ -130,7 +232,8 @@ class VectorSearch:
         if threshold is None:
             threshold = Config.SIMILARITY_THRESHOLD
 
-        query_embedding = get_embedding(query)
+        rewritten_query = _rewrite_query_as_question(query)
+        query_embedding = get_embedding(rewritten_query)
 
         merged: dict[str, dict[str, Any]] = {}
         for collection_name, collection in self.collections.items():
@@ -180,7 +283,7 @@ class VectorSearch:
         logger.info(
             "Merged-search found %s results for query: %s... (collections=%s)",
             len(formatted_results),
-            query[:50],
+            rewritten_query[:50],
             self.collection_names,
         )
         return formatted_results

@@ -170,6 +170,8 @@ def main() -> None:
     processed_data_file = Path(Config.PROCESSED_DATA_DIR) / "faq_processed.json"
     faq_data = load_processed_data(processed_data_file)
 
+    faq_data = faq_data[-1000:]  # TODO: Remove this
+
     # Create Chroma client
     client = create_chroma_client()
     strategies: list[list[FAQColumn]] = [
