@@ -136,10 +136,41 @@ Answer:"""
                     {"role": "user", "content": prompt},
                 ],
                 # temperature=0.7,
-                max_completion_tokens=500,
+                max_completion_tokens=1000,
             )
 
-            answer = response.choices[0].message.content.strip()
+            # NOTE:
+            # - message.content can be None or empty (e.g., tool_calls/refusal/content_filter).
+            # - Avoid calling .strip() on None and log enough fields to diagnose empty responses.
+            choice0 = response.choices[0]
+            message0 = choice0.message
+
+            content0 = message0.content or ""
+            answer = content0.strip()
+
+            finish_reason = getattr(choice0, "finish_reason", None)
+            tool_calls = getattr(message0, "tool_calls", None)
+            refusal = getattr(message0, "refusal", None)
+
+            if not answer:
+                logger.warning(
+                    "Empty LLM content. model=%s finish_reason=%s has_tool_calls=%s has_refusal=%s content_len=%s",
+                    model,
+                    finish_reason,
+                    bool(tool_calls),
+                    bool(refusal),
+                    len(content0),
+                )
+                if refusal:
+                    answer = "요청하신 내용은 안전 정책으로 인해 답변할 수 없습니다."
+                elif tool_calls:
+                    answer = "도구 호출 응답이 반환되어 텍스트 답변이 비어 있습니다. (tool_calls)"
+                elif finish_reason == "length":
+                    answer = "답변이 길이 제한으로 중단되었습니다. max_tokens를 늘리거나 질문을 더 구체화해 주세요."
+                else:
+                    answer = (
+                        "모델이 빈 응답을 반환했습니다. 잠시 후 다시 시도해 주세요."
+                    )
 
             return {
                 "answer": answer,
@@ -148,6 +179,7 @@ Answer:"""
                     "num_retrieved": len(search_results),
                     "model": model,
                     "query": query,
+                    "finish_reason": finish_reason,
                 },
             }
 

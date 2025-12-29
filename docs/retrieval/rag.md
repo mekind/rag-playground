@@ -88,6 +88,34 @@ Generates an answer using the complete RAG pipeline.
 7. Handles errors and returns error information
 8. Logs each step of the process
 
+## OpenAI 응답 파싱 규약 (중요)
+
+`generate_answer()`는 OpenAI **Chat Completions** 응답에서 최종 답변 텍스트를 추출합니다.
+구현 및 디버깅 시 아래 규약을 따릅니다.
+
+### 기본 추출 경로
+
+- 기본적으로 답변 텍스트는 `choices[0].message.content`에서 추출합니다.
+- `content`가 `None`일 수 있으므로, `.strip()` 호출 전 **None 방어**가 필요합니다.
+
+### `content`가 비어 있을 수 있는 대표 원인
+
+- **tool 호출 경로**: 모델이 `message.tool_calls`로 응답하는 경우, `message.content`는 빈 문자열/None일 수 있습니다.
+- **거절/필터링 경로**: 안전 정책에 의해 `message.refusal`이 채워지고 `content`가 비어 있을 수 있습니다.
+- **종료 사유(finish_reason) 영향**: `choices[0].finish_reason`가 `tool_calls`, `content_filter`, `length` 등일 때 콘텐츠가 비거나 기대보다 짧을 수 있습니다.
+
+### 권장 로그 (원인 규명용)
+
+`content`가 비어 있거나 예상과 다를 때 아래 값을 함께 로깅합니다.
+
+- `model`
+- `choices[0].finish_reason`
+- `choices[0].message.content` (길이/None 여부)
+- `choices[0].message.tool_calls` 존재 여부
+- `choices[0].message.refusal` 존재 여부
+
+이 로그만 있으면 “왜 content가 비었는지”를 대부분 즉시 구분할 수 있습니다.
+
 **Prompt Structure:**
 The prompt instructs the LLM to:
 - Answer based on provided context
