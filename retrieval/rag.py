@@ -41,15 +41,16 @@ class RAGPipeline:
         context_parts = []
         for i, result in enumerate(search_results, 1):
             text = result.get("text", "")
+            answer = result.get("metadata", {}).get("answer", "")
             similarity = result.get("similarity", 0.0)
-            collection_name = result.get("collection_name")
+            collection_name = result.get("collection_name", "")
             collection_suffix = (
                 f", Collection: {collection_name}"
                 if isinstance(collection_name, str)
                 else ""
             )
             context_parts.append(
-                f"[{i}] (Similarity: {similarity:.3f}{collection_suffix})\n{text}\n"
+                f"[{i}] (Similarity: {similarity:.3f}{collection_suffix})\nquestion: {text}\nanswer: {answer}\n"
             )
 
         return "\n".join(context_parts)
